@@ -12,54 +12,60 @@ const upload = multer({ storage: multer.memoryStorage() });
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHAT_ID = process.env.CHAT_ID;
 
-// 🔥 Upload to Telegram
+// 💾 Store uploaded file URLs (temporary memory)
+let storedFiles = [];
+
+// 🔥 Upload to Telegram + store URL
 app.post("/upload", upload.single("file"), async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).send("No file uploaded");
+    }
+
     const form = new FormData();
     form.append("chat_id", CHAT_ID);
     form.append("document", req.file.buffer, req.file.originalname);
 
-    await axios.post(
+    // 📤 Send to Telegram
+    const response = await axios.post(
       `https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`,
       form,
       { headers: form.getHeaders() }
     );
 
-    res.json({ success: true });
+    // 📥 Get file_id from Telegram response
+    const fileId = response.data.result.document.file_id;
+
+    // 🔍 Get file path
+    const file = await axios.get(
+      `https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`
+    );
+
+    const path = file.data.result.file_path;
+
+    // 🌐 Build public URL
+    const fileUrl = `https://api.telegram.org/file/bot${8639454052:AAH4nSXgAellqRdTmkwC2DVqSm6QzP5LAFs}/${path}`;
+
+    // 💾 Save in memory
+    storedFiles.push(fileUrl);
+
+    res.json({ success: true, url: fileUrl });
   } catch (err) {
-    console.error(err);
+    console.error(err.response?.data || err.message);
     res.status(500).send("Upload failed");
   }
 });
 
-// 🔥 Get images
-app.get("/photos", async (req, res) => {
-  try {
-    const updates = await axios.get(
-      `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates`
-    );
-
-    let urls = [];
-
-    for (let u of updates.data.result) {
-      if (u.message && u.message.document) {
-        const fileId = u.message.document.file_id;
-
-        const file = await axios.get(
-          `https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`
-        );
-
-        const path = file.data.result.file_path;
-
-        urls.push(`https://api.telegram.org/file/bot${BOT_TOKEN}/${path}`);
-      }
-    }
-
-    res.json(urls);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error fetching images");
-  }
+// 🔥 Get stored files
+app.get("/photos", (req, res) => {
+  res.json(storedFiles);
 });
 
-app.listen(3000, () => console.log("Server running"));
+// 🌍 Root check (optional but useful)
+app.get("/", (req, res) => {
+  res.send("Server is running 🚀");
+});
+
+// ⚠️ IMPORTANT: dynamic port for Railway
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("Server running on", PORT));
