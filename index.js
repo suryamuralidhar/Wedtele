@@ -44,7 +44,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     const path = file.data.result.file_path;
 
     // 🌐 Build public URL
-    const fileUrl = `https://api.telegram.org/file/bot${8639454052:AAH4nSXgAellqRdTmkwC2DVqSm6QzP5LAFs}/${path}`;
+    const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${path}`;
 
     // 💾 Save in memory
     storedFiles.push(fileUrl);
