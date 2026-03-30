@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "node-telegram-bot-api": "^0.61.0",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1"
   }
 }
